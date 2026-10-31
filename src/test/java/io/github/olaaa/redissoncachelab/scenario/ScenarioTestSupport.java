@@ -10,7 +10,6 @@ import io.github.olaaa.redissoncachelab.catalog.ProductSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.testcontainers.containers.GenericContainer;
@@ -41,9 +40,6 @@ abstract class ScenarioTestSupport {
     /* Контейнер Redis: через него тест смотрит в Redis командами redis-cli, в обход Redisson. */
     @Autowired
     GenericContainer<?> redisContainer;
-
-    @Value("${redisson.address}")
-    String redissonAddress;
 
     @BeforeEach
     void resetLab() {

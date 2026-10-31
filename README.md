@@ -7,7 +7,7 @@
 - [caching-lab](https://github.com/olaaa/caching-lab) — локальный кэш на Caffeine;
 - [distributed-cache-lab](https://github.com/olaaa/distributed-cache-lab) — Redis как кэш на Spring Data Redis и Lettuce, в том числе двухуровневый кэш и инвалидация между репликами, собранные вручную.
 
-Здесь — то же на Redisson. Отдельный репозиторий нужен, чтобы зависимости не путались: Redisson подключён библиотекой `org.redisson:redisson` без стартера, Spring Data Redis и Lettuce в проекте нет.
+Здесь — то же на Redisson. Отдельный репозиторий нужен, чтобы зависимости не путались: Redisson подключён через `redisson-spring-boot-starter`, а Lettuce в проекте нет: стартер приносит Spring Data Redis без Lettuce и Jedis и ставит фабрикой соединений свою `RedissonConnectionFactory`.
 
 ## Как запустить
 
@@ -23,12 +23,11 @@ mvn test
 mvn spring-boot:run
 ```
 
-Spring Boot сам поднимет PostgreSQL и Redis из `compose.yaml`. У Redis фиксированный порт 6379: адрес для Redisson задан в `application.yml` (`redisson.address`), подставлять его из `compose.yaml` Spring Boot умеет только для Spring Data Redis. Запросы для IntelliJ HTTP Client — в папке `http`, счётчик обращений к источнику — `GET /lab/stats`, сброс — `POST /lab/reset`.
+Spring Boot сам поднимет PostgreSQL и Redis из `compose.yaml`, а стартер Redisson возьмёт адрес Redis оттуда же. Запросы для IntelliJ HTTP Client — в папке `http`, счётчик обращений к источнику — `GET /lab/stats`, сброс — `POST /lab/reset`.
 
 ## Устройство
 
 - `catalog` — таблица `product`, `ProductRepository` на `DatabaseClient` и `ProductSource`: чтение товара с задержкой, счётчиком обращений и умением падать.
-- `config/RedissonConfiguration` — `RedissonClient` из свойства `redisson.address`.
 - `scenario` — по сервису на приём.
 - `web` — `GET /products/{id}`, `PUT /products/{id}/price` и служебные ручки `/lab`.
 

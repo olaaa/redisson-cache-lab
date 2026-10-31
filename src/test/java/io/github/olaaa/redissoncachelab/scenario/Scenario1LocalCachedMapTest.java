@@ -9,13 +9,13 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.github.olaaa.redissoncachelab.config.RedissonConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.redisson.Redisson;
 import org.redisson.api.LocalCachedMapCacheOptions;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.options.LocalCachedMapOptions.ReconnectionStrategy;
+import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /* Сценарий 1. RLocalCachedMap: двухуровневый кэш и инвалидация между репликами средствами Redisson. */
@@ -109,9 +109,12 @@ class Scenario1LocalCachedMapTest extends ScenarioTestSupport {
                 .hasMessageContaining("Redisson PRO");
     }
 
-    /* Ещё одна реплика: свой RedissonClient — свои соединения и своя локальная копия. */
+    /*
+     * Ещё одна реплика: свой RedissonClient — свои соединения и своя локальная копия.
+     * Настройка — копия настройки бина, который собрал стартер: тот же Redis, те же параметры.
+     */
     private LocalCachedMapProductService startReplica(ReconnectionStrategy reconnectionStrategy) {
-        RedissonClient client = Redisson.create(RedissonConfiguration.clientConfig(redissonAddress));
+        RedissonClient client = Redisson.create(new Config(redisson.getConfig()));
         startedClients.add(client);
         return new LocalCachedMapProductService(source, repository, client, reconnectionStrategy);
     }

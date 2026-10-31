@@ -1,7 +1,7 @@
 # Сценарий 1. `RLocalCachedMap`: двухуровневый кэш и инвалидация
 
 Тест: `src/test/java/io/github/olaaa/redissoncachelab/scenario/Scenario1LocalCachedMapTest.java`.
-Сервис: `LocalCachedMapProductService` (карта `productsLocalCached`, `LOCAL_TTL` = 30 секунд). Настройка клиента: `config/RedissonConfiguration`.
+Сервис: `LocalCachedMapProductService` (карта `productsLocalCached`, `LOCAL_TTL` = 30 секунд). Клиент создаёт `redisson-spring-boot-starter`.
 Ручная проверка: `http/01-local-cached-map.http` — на двух запущенных репликах.
 
 ## Ситуация
@@ -12,20 +12,13 @@
 
 ## Подключение
 
-Redisson подключён как библиотека `org.redisson:redisson`, без `redisson-spring-boot-starter`. Стартер подключает Spring Data Redis и свою фабрику соединений, а здесь Spring Data Redis и Lettuce нет вовсе — поэтому сценарии с Redisson живут в отдельном репозитории и зависимости не путаются. `RedissonClient` создаётся вручную:
+Redisson подключён через `redisson-spring-boot-starter`. Своей конфигурации клиента в проекте нет: стартер сам создаёт бины `RedissonClient`, `RedissonReactiveClient` и `RedissonRxClient`.
 
-```java
-@Bean(destroyMethod = "shutdown")
-RedissonClient redissonClient(@Value("${redisson.address}") String address) {
-    Config config = new Config();
-    config.useSingleServer().setAddress(address);
-    return Redisson.create(config);
-}
-```
+Адрес Redis стартер берёт там же, где Spring Boot для Spring Data Redis: из `DataRedisConnectionDetails` (в исходнике `RedissonAutoConfigurationV4` — `getStandalone`, `getSentinel`, `getCluster`), а без них — из свойств `spring.data.redis.*`. Поэтому адрес подставляется сам и из `compose.yaml` при `mvn spring-boot:run`, и из контейнера Testcontainers с `@ServiceConnection(name = "redis")` в тестах. Для тонкой настройки клиента есть свойство `spring.redis.redisson.config` (или `file`) с YAML-настройкой Redisson.
 
-Один `RedissonClient` — одна реплика: у клиента свои соединения с Redis, в том числе отдельное для Pub/Sub. В тестах вторая реплика — второй `RedissonClient` к тому же Redis.
+Стартер приносит и Spring Data Redis — без Lettuce и Jedis: фабрикой соединений Spring Data Redis становится `RedissonConnectionFactory`. Второго клиента Redis в проекте нет, поэтому сценарии с Redisson и живут в отдельном репозитории: в distributed-cache-lab Spring Data Redis работает через Lettuce.
 
-Адрес Redis берётся из свойства `redisson.address`. Подставлять адрес из `compose.yaml` и Testcontainers (`@ServiceConnection`) Spring Boot умеет только для Spring Data Redis, поэтому в тестах адрес контейнера передаётся через `DynamicPropertyRegistrar`, а в `compose.yaml` у Redis фиксированный порт 6379.
+Один `RedissonClient` — одна реплика: у клиента свои соединения с Redis, в том числе отдельное для Pub/Sub. В тестах вторая реплика — второй `RedissonClient` с копией настройки бина: `Redisson.create(new Config(redisson.getConfig()))`.
 
 ## Как это работает
 
@@ -121,7 +114,7 @@ docker compose exec redis redis-cli TTL productsLocalCached
 | Потерянная инвалидация | только короткий `LOCAL_TTL` | `ReconnectionStrategy.CLEAR` или `LOAD` плюс `timeToLive` |
 | Срок жизни записи в Redis | `SET … EX` на каждый ключ | нет в открытой версии |
 | `@Cacheable` | нет (вручную) | нет в открытой версии |
-| Клиент | Spring Data Redis и Lettuce | Redisson |
+| Клиент | Spring Data Redis и Lettuce | Redisson через `redisson-spring-boot-starter` |
 
 ## Как сказать на собеседовании
 
@@ -130,5 +123,6 @@ docker compose exec redis redis-cli TTL productsLocalCached
 ## Источники
 
 - Redisson — [Collections: Map, local cache](https://redisson.pro/docs/data-and-services/collections/), [Integration with Spring](https://redisson.pro/docs/integration-with-spring/).
+- `redisson-spring-boot-starter` 4.8.0, байткод: `RedissonAutoConfigurationV4`.
 - Redisson 4.8.0, исходники: `LocalCachedMapOptions`, `RedissonReactiveClient.getLocalCachedMap`, `RLocalCachedMapReactive`, `Redisson.getLocalCachedMapCache`, `TypedJsonJackson3Codec`.
 - Redis — [Pub/Sub: Delivery semantics](https://redis.io/docs/latest/develop/pubsub/), [Client-side caching](https://redis.io/docs/latest/develop/reference/client-side-caching/).

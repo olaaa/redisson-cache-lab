@@ -43,13 +43,14 @@
             <artifactId>spring-boot-starter-data-r2dbc</artifactId>
         </dependency>
         <!--
-            Сам Redisson, без redisson-spring-boot-starter: стартер подключает Spring Data Redis
-            и свою фабрику соединений. Здесь RedissonClient создаётся вручную в RedissonConfiguration,
-            а Spring Data Redis и Lettuce в проекте нет вовсе — так зависимости не путаются.
+            Стартер Redisson. Приносит сам Redisson и автоконфигурацию: бины RedissonClient
+            и RedissonReactiveClient с адресом из spring.data.redis.* — или из compose.yaml и Testcontainers.
+            Ещё приносит Spring Data Redis без Lettuce и Jedis: фабрикой соединений Spring Data Redis
+            становится RedissonConnectionFactory, так что второго клиента Redis в проекте нет.
         -->
         <dependency>
             <groupId>org.redisson</groupId>
-            <artifactId>redisson</artifactId>
+            <artifactId>redisson-spring-boot-starter</artifactId>
             <version>${redisson.version}</version>
         </dependency>
         <dependency>

@@ -7,9 +7,7 @@ services:
       POSTGRES_PASSWORD: catalog
     ports:
       - "5432"
-  # Порт фиксированный: Spring Boot подставляет адрес из compose.yaml только для Spring Data Redis,
-  # а Redisson здесь настраивается вручную, адресом из application.yml.
   redis:
     image: redis:8-alpine
     ports:
-      - "6379:6379"
+      - "6379"
