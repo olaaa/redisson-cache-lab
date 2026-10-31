@@ -58,7 +58,7 @@ public Mono<Boolean> changePrice(long id, BigDecimal price) {
 
 `get` сначала смотрит в локальную копию и только при промахе отправляет в Redis `HGET`. `fastPut` пишет в хеш и рассылает событие остальным экземплярам, `fastRemove` удаляет из хеша, из своей копии и рассылает инвалидацию. Код рассылки и подписки — внутри Redisson. Всё, что в distributed-cache-lab было в `BroadcastInvalidationProductService`, здесь — одна настройка и вызов `fastRemove`.
 
-В Redis карта — обычный хеш: ключ `productsLocalCached`, поле — id товара, значение — JSON. Документация Redisson: «Instances with the same name share a pub/sub channel. This channel is used for exchanging of update/invalidate events between all instances».
+В Redis карта — обычный хеш: ключ `productsLocalCached`, поле — id товара, значение — JSON. Документация Redisson: «Экземпляры с одним именем используют общий канал pub/sub. По этому каналу все экземпляры обмениваются событиями обновления и инвалидации».
 
 ### Строка и hash в Redis
 
@@ -88,9 +88,9 @@ productsLocalCached  →  ┌ "1" → {"id":1,"name":"Чайник","price":2490
 
 Инвалидации идут через Pub/Sub, а Pub/Sub доставляет сообщение не больше одного раза: экземпляр, который был отключён, сообщение потеряет (сценарий 4 distributed-cache-lab). Redisson решает это настройкой. Варианты из исходника `LocalCachedMapOptions` (Redisson 4.8.0):
 
-- **`NONE`** — «No reconnect handling». Значение по умолчанию. Копия после обрыва остаётся, пропущенные инвалидации не учтены.
-- **`CLEAR`** — «Clear local cache if map instance disconnected». После переподключения локальная копия очищается целиком — то, что документация Redis советует для клиентских кэшей: «Make sure that if the connection is lost, the local cache is flushed».
-- **`LOAD`** — «Store invalidated entry hash in invalidation log for 10 minutes. Cache keys for stored invalidated entry hashes will be removed if LocalCachedMap instance has been disconnected less than 10 minutes or whole local cache will be cleaned otherwise». Экземпляр после короткого обрыва удаляет только те записи, которые за это время менялись.
+- **`NONE`** — «Переподключение никак не обрабатывается». Значение по умолчанию. Копия после обрыва остаётся, пропущенные инвалидации не учтены.
+- **`CLEAR`** — «Очистить локальный кэш, если экземпляр карты отключался». После переподключения локальная копия очищается целиком — то, что документация Redis советует для клиентских кэшей: «Если соединение потеряно, обязательно очистите локальный кэш».
+- **`LOAD`** — «Хранить хеши инвалидированных записей в журнале инвалидаций 10 минут. Если экземпляр LocalCachedMap был отключён меньше 10 минут, из кэша удаляются ключи записей из журнала, иначе локальный кэш очищается целиком». Экземпляр после короткого обрыва удаляет только те записи, которые за это время менялись.
 
 По умолчанию стоит `NONE`, поэтому стратегию нужно выбрать явно. В сервисе — `CLEAR`.
 
