@@ -60,6 +60,30 @@ public Mono<Boolean> changePrice(long id, BigDecimal price) {
 
 В Redis карта — обычный хеш: ключ `productsLocalCached`, поле — id товара, значение — JSON. Документация Redisson: «Instances with the same name share a pub/sub channel. This channel is used for exchanging of update/invalidate events between all instances».
 
+### Строка и hash в Redis
+
+Redis — одна большая таблица «ключ → значение». Значение бывает разных типов, здесь важны два. Товар 2 на картинках — для примера.
+
+**Строка (string)** — под ключом лежит одно значение:
+
+```text
+products::1  →  {"id":1,"name":"Чайник","price":2490.00}
+products::2  →  {"id":2,"name":"Тостер","price":3100.00}
+```
+
+Так хранит distributed-cache-lab: каждый товар — под своим ключом, у каждого ключа свой срок жизни, и товары истекают по отдельности.
+
+**Hash** — под ключом лежит не одно значение, а словарь «поле → значение»:
+
+```text
+productsLocalCached  →  ┌ "1" → {"id":1,"name":"Чайник","price":2490.00}
+                        └ "2" → {"id":2,"name":"Тостер","price":3100.00}
+```
+
+Ключ один — `productsLocalCached`, товары внутри него. В Java это было бы `Map<String, Map<String, String>>`: внешний ключ — `productsLocalCached`, внутренний словарь — товары. Так хранит `RLocalCachedMap`. Команды для hash — `HSET`, `HGET`, `HDEL`, `HGETALL`.
+
+Срок жизни (`EXPIRE`) в Redis вешается на ключ. У строк ключ — один товар, у hash — весь словарь: срок можно поставить только всем товарам сразу, а у отдельного товара внутри словаря своего срока нет. Отсюда ограничение из раздела «Чего нет в бесплатной версии».
+
 ## Обрыв связи: `ReconnectionStrategy`
 
 Инвалидации идут через Pub/Sub, а Pub/Sub доставляет сообщение не больше одного раза: экземпляр, который был отключён, сообщение потеряет (сценарий 4 distributed-cache-lab). Redisson решает это настройкой. Варианты из исходника `LocalCachedMapOptions` (Redisson 4.8.0):
