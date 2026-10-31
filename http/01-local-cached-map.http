@@ -1,0 +1,31 @@
+### Сценарий 1. RLocalCachedMap. Подробно: docs/scenarios/01-local-cached-map.md
+### Нужны две реплики: mvn spring-boot:run и во втором терминале
+### mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8081
+### Хеш в Redis: docker compose exec redis redis-cli HGETALL productsLocalCached
+
+### 1. Сброс на реплике 8080 (Redis общий — очистится для обеих)
+POST http://localhost:8080/lab/reset
+
+### 2. Сброс локальной копии и счётчика на реплике 8081
+POST http://localhost:8081/lab/reset
+
+### 3. Товар на реплике 8080 — источник, затем хеш в Redis и локальная копия
+GET http://localhost:8080/products/1
+
+### 4. Товар на реплике 8081 — из хеша в Redis, затем в свою локальную копию
+GET http://localhost:8081/products/1
+
+### 5. Изменить цену на реплике 8080: Redisson сам разошлёт инвалидацию
+PUT http://localhost:8080/products/1/price
+Content-Type: application/json
+
+{"price": 1990.00}
+
+### 6. Реплика 8081 сразу отдаёт новую цену
+GET http://localhost:8081/products/1
+
+### 7. Вернуть цену
+PUT http://localhost:8080/products/1/price
+Content-Type: application/json
+
+{"price": 2490.00}

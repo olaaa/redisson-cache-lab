@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: redisson-cache-lab
+  sql:
+    init:
+      mode: always
+
+catalog:
+  source:
+    # Искусственная задержка источника: так промах кэша заметен и в тестах, и вручную.
+    delay: 50ms
+
+# Адрес Redis для RedissonClient. В тестах его подменяет адрес контейнера Testcontainers.
+redisson:
+  address: redis://localhost:6379
