@@ -40,7 +40,3 @@ Spring Boot сам поднимет PostgreSQL и Redis из `compose.yaml`, а 
 Тест: `Scenario1LocalCachedMapTest`. Сервис: `LocalCachedMapProductService`. Подробно: [docs/scenarios/01-local-cached-map.md](docs/scenarios/01-local-cached-map.md), вручную: `http/01-local-cached-map.http` на двух репликах.
 
 Локальная копия в каждой реплике, хеш в Redis и инвалидация через Pub/Sub — без своего кода рассылки. Десять чтений — одна команда `HGET`. Изменение на одной реплике — и другая сразу видит новую цену. `ReconnectionStrategy.CLEAR` очищает локальную копию после обрыва связи, по умолчанию стоит `NONE`. В открытой версии нет срока жизни записей в Redis (`RLocalCachedMapCache` — только PRO) и нет `@Cacheable` с локальным кэшем.
-
-## Дальше
-
-- Демо-сценарий для `RSetReactive`.
